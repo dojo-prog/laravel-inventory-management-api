@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Override;
 
 class LoginRequest extends FormRequest
 {
@@ -30,6 +31,19 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+        ];
+    }
+
+    #[Override]
+    public function messages()
+    {
+        return [
+            'email.required' => 'Email is required',
+            'email.string' => 'Email must be a valid string',
+            'email.email' => 'Invalid email format',
+
+            'password.required' => 'Password is required',
+            'password.string' => 'Password must be a valid string',
         ];
     }
 
