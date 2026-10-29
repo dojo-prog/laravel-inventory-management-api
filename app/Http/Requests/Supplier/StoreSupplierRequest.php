@@ -4,6 +4,7 @@ namespace App\Http\Requests\Supplier;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Override;
 
 class StoreSupplierRequest extends FormRequest
@@ -28,7 +29,14 @@ class StoreSupplierRequest extends FormRequest
                 'required',
                 'string',
                 'min:2',
-                'max:255'
+                'max:255',
+                Rule::unique('suppliers', 'name')
+                    ->where(function ($query) {
+                        return $query->whereRaw(
+                            'LOWER(contact_person) = ?', 
+                            [strtolower($this->contact_person)]
+                        );
+                    })
             ],
 
             'contact_person' => [
@@ -73,6 +81,7 @@ class StoreSupplierRequest extends FormRequest
             'name.string' => 'Supplier name must be a valid string',
             'name.min' => 'Supplier name must be at least :min characters long',
             'name.max' => 'Supplier name cannot exceed :max characters',
+            'name.unique' => 'A supplier with this name and contact person already exists',
 
             'contact_person.string' => 'Contact person name must be a valid string',
             'contact_person.min' => 'Contact person name must be at least :min characters long',
