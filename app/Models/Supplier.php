@@ -20,7 +20,7 @@ class Supplier extends Model
 
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class, 'product_supplier')
+        return $this->belongsToMany(Product::class, 'product_suppliers')
             ->using(ProductSupplier::class)
             ->withPivot(['supplier_sku', 'unit_cost'])
             ->withTimestamps();
