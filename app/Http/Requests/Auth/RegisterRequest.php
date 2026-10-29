@@ -49,6 +49,13 @@ class RegisterRequest extends FormRequest
                 'min:8',
                 'max:100',
                 'confirmed',
+            ],
+
+            'role' => [
+                'sometimes',
+                'nullable',
+                'string', 
+                'in:admin,staff'
             ]
         ];
     }
@@ -74,6 +81,9 @@ class RegisterRequest extends FormRequest
             'password.min' => 'Password must at least be :min characters long',
             'password.max' => 'Password cannot exceed :max characters',
             'password.confirmed' => 'Passwords do not match',
+
+            'role.string' => 'User role must be a valid string',
+            'role.in' => 'Invalid user role, must only be either admin or staff'
 
         ];
     }
