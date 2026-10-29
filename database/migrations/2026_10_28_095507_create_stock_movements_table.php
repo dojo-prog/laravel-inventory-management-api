@@ -35,7 +35,7 @@ return new class extends Migration
             CHECK (type IN (
                 \'stock-in\',
                 \'stock-out\',
-                \'stock-adjustment\'
+                \'adjustment\'
             ))
         ');
 
@@ -51,8 +51,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('ALTER TABLE stock_movement DROP CONSTRAINT stock_movements_type_chk');
-        DB::statement('ALTER TABLE stock_movement DROP CONSTRAINT stock_movements_new_quantity_chk');
+        DB::statement('ALTER TABLE stock_movements DROP CONSTRAINT stock_movements_type_chk');
+        DB::statement('ALTER TABLE stock_movements DROP CONSTRAINT stock_movements_new_quantity_chk');
 
         Schema::dropIfExists('stock_movements');
     }
