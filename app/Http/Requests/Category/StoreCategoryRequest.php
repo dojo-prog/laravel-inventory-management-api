@@ -30,7 +30,13 @@ class StoreCategoryRequest extends FormRequest
                 'string', 
                 'min:2', 
                 'max:50', 
-                Rule::unique('categories', 'name')
+                Rule::unique('categories')
+                    ->where(function ($query) {
+                        return $query->whereRaw(
+                            'LOWER(name) = ?', 
+                            [strtolower($this->name)]
+                        );
+                    })
             ],
 
             'description' => [

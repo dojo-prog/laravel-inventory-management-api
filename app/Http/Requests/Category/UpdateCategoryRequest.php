@@ -31,9 +31,14 @@ class UpdateCategoryRequest extends FormRequest
                 'string', 
                 'min:2', 
                 'max:50', 
-                Rule::unique('categories', 'name')->ignore(
-                    $this->route('category')
-                )
+                Rule::unique('categories')
+                    ->where(function ($query) {
+                        return $query->whereRaw(
+                            'LOWER(name) = ?', 
+                            [strtolower($this->name)]
+                        );
+                    })
+                    ->ignore($this->route('category'))
             ],
 
             'description' => [
