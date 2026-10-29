@@ -25,20 +25,16 @@ class UpdateProductSupplierRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => [
-                'sometimes',
-                'required',
-                'string',
-                'uuid',
-                Rule::exists('products', 'id')
-            ],
-
             'supplier_id' => [
-                'sometimes',
                 'required',
                 'string',
                 'uuid',
-                Rule::exists('suppliers', 'id')
+                Rule::exists('suppliers', 'id'),
+                Rule::unique('product_suppliers', 'supplier_id')
+                    ->where(function ($query) {
+                        return $query->where('product_id', $this->product_id);
+                    })
+                    ->ignore($this->route('productSupplier'))
             ],
 
             'supplier_sku' => [
@@ -65,15 +61,11 @@ class UpdateProductSupplierRequest extends FormRequest
     public function messages()
     {
         return [
-            'product_id.required' => 'Product is required',
-            'product_id.string' => 'Product ID must be a valid string',
-            'product_id.uuid' => 'Product ID format is invalid (must be a UUID)',
-            'product_id.exists' => 'Product provided does not exist or has been deleted',
-
             'supplier_id.required' => 'Supplier is required',
             'supplier_id.string' => 'Supplier ID must be a valid string',
             'supplier_id.uuid' => 'Supplier ID format is invalid (must be a UUID)',
             'supplier_id.exists' => 'Supplier provided does not exist or has been deleted',
+            'supplier_id.unique' => 'This product is already registered/associated with this supplier',
             
             'supplier_sku.string' => 'Supplier SKU must be a valid string',
             'supplier_sku.min' => 'Supplier SKU must at least be :min characters long',

@@ -36,7 +36,11 @@ class StoreProductSupplierRequest extends FormRequest
                 'required',
                 'string',
                 'uuid',
-                Rule::exists('suppliers', 'id')
+                Rule::exists('suppliers', 'id'),
+                Rule::unique('product_suppliers', 'supplier_id')
+                    ->where(function ($query) {
+                        return $query->where('product_id', $this->product_id);
+                    })
             ],
 
             'supplier_sku' => [
@@ -72,7 +76,7 @@ class StoreProductSupplierRequest extends FormRequest
             'supplier_id.string' => 'Supplier ID must be a valid string',
             'supplier_id.uuid' => 'Supplier ID format is invalid (must be a UUID)',
             'supplier_id.exists' => 'Supplier provided does not exist or has been deleted',
-
+            'supplier_id.unique' => 'This product is already registered/associated with this supplier',
             
             'supplier_sku.string' => 'Supplier SKU must be a valid string',
             'supplier_sku.min' => 'Supplier SKU must at least be :min characters long',
