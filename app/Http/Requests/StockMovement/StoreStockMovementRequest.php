@@ -25,19 +25,6 @@ class StoreStockMovementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => [
-                'required',
-                'string',
-                'uuid',
-                Rule::exists('products', 'id')
-            ],
-
-            'type' => [
-                'required',
-                'string', 
-                'in:stock-in,stock-out,adjustment',
-            ],
-
             'quantity' => [
                 'bail',
                 'required',
@@ -68,15 +55,6 @@ class StoreStockMovementRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'product_id.required' => 'Product is required.',
-            'product_id.string' => 'Product ID must be a valid string.',
-            'product_id.uuid' => 'Product ID format is invalid (must be a UUID).',
-            'product_id.exists' => 'The selected product does not exist or has been deleted.',
-
-            'type.required' => 'The movement type is required.',
-            'type.string' => 'The movement type must be a valid string.',
-            'type.in' => 'The movement type must be one of: stock-in, stock-out, or adjustment.',
-
             'quantity.required' => 'The quantity is required.',
             'quantity.integer' => 'The quantity must be a whole number.',
             'quantity.min' => 'The quantity cannot be less than 0.',
