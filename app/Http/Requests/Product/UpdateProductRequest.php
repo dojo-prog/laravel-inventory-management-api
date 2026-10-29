@@ -36,14 +36,12 @@ class UpdateProductRequest extends FormRequest
                 'string',
                 'min:2',
                 'max:100',
-                Rule::unique('products', 'category_id')
-                    ->where(function ($query) {
-                        return $query->whereRaw(
-                            'LOWER(name) = ?',
-                            [strtolower($this->name)]
-                        );
-                    })
-                    ->ignore($this->route('product'))
+                Rule::unique('products')->where(function ($query) {
+                    return $query
+                    ->whereRaw('LOWER(name) = ?', [strtolower($this->name)])
+                    ->where('category_id', $this->category_id);
+                })
+                ->ignore($this->route('product'))
             ],
 
             'description' => [
