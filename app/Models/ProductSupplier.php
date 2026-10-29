@@ -10,17 +10,19 @@ class ProductSupplier extends Pivot
 {
     use HasUuids;
 
+    protected $table = 'product_suppliers';
+
     protected $fillable = [
         'product_id',
         'supplier_id',
         'supplier_sku',
-        'unit_cost', 
+        'unit_cost',
     ];
 
     protected function casts()
     {
         return [
-            'unit_cost' => 'decimal:2'
+            'unit_cost' => 'decimal:2',
         ];
     }
 
