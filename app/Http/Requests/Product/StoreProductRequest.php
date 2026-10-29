@@ -36,14 +36,28 @@ class StoreProductRequest extends FormRequest
                 'nullable',
                 'string', 
                 'min:4',
-                'max:50'
+                'max:50',
+                Rule::unique('products')
+                    ->where(function ($query) {
+                        return $query->whereRaw(
+                            'LOWER(sku) = ?',
+                            [strtolower($this->sku)] 
+                        );
+                    })
             ],
 
             'name' => [
                 'required',
                 'string',
                 'min:2',
-                'max:100'
+                'max:100',
+                Rule::unique('products', 'category_id')
+                    ->where(function ($query) {
+                        return $query->whereRaw(
+                            'LOWER(name) = ?',
+                            [strtolower($this->name)]
+                        );
+                    })
             ],
 
             'description' => [
@@ -110,6 +124,7 @@ class StoreProductRequest extends FormRequest
             'name.string' => 'Product name must be a valid string',
             'name.min' => 'Product name must at least be :min characters long',
             'name.max' => 'Product name cannot exceed :max characters',
+            'name.unique' => 'This product name already exists in the provided category',
 
             'description.string' => 'Product description must be a valid string',
             'description.min' => 'Product description must at least be :min characters long',

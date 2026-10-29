@@ -26,26 +26,24 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             'category_id' => [
-                'sometimes',
                 'required',
                 'string',
                 Rule::exists('categories', 'id')
             ],
 
-            'sku' => [
-                'sometimes',
-                'nullable',
-                'string', 
-                'min:4',
-                'max:50'
-            ],
-
             'name' => [
-                'sometimes',
                 'required',
                 'string',
                 'min:2',
-                'max:100'
+                'max:100',
+                Rule::unique('products', 'category_id')
+                    ->where(function ($query) {
+                        return $query->whereRaw(
+                            'LOWER(name) = ?',
+                            [strtolower($this->name)]
+                        );
+                    })
+                    ->ignore($this->route('product'))
             ],
 
             'description' => [
@@ -57,7 +55,6 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'unit' => [
-                'sometimes',
                 'required',
                 'string',
                 'min:2',
@@ -65,7 +62,6 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'unit_cost' => [
-                'sometimes',
                 'bail',    
                 'required',
                 'numeric',
@@ -75,7 +71,6 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'stock_quantity' => [
-                'sometimes',
                 'bail',
                 'required',
                 'integer',
@@ -84,7 +79,6 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'reorder_level' => [
-                'sometimes',
                 'bail',
                 'required',
                 'integer',
@@ -93,7 +87,6 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'status' => [
-                'sometimes',
                 'required',
                 'string',
                 'in:active,inactive'
@@ -108,15 +101,12 @@ class UpdateProductRequest extends FormRequest
             'category_id.required' => 'Category is required',
             'category_id.string' => 'Category must be a valid string',
             'category_id.exists' => 'The category provided does not exist or has been currently deleted',
-            
-            'sku.string' => 'Product SKU must be a valid string',
-            'sku.min' => 'Product SKU must at least be :min characters long',
-            'sku.max' => 'Product SKU cannot exceed :max characters',
 
             'name.required' => 'Product name is required',
             'name.string' => 'Product name must be a valid string',
             'name.min' => 'Product name must at least be :min characters long',
             'name.max' => 'Product name cannot exceed :max characters',
+            'name.unique' => 'This product name already exists in the provided category',
 
             'description.string' => 'Product description must be a valid string',
             'description.min' => 'Product description must at least be :min characters long',
@@ -132,7 +122,7 @@ class UpdateProductRequest extends FormRequest
             'unit_cost.min' => 'Product unit cost value must at least be :min',
             'unit_cost.max' => 'Product unit cost cannot exceed :max',
 
-            'stock_quantity.required' => 'Product stock quantity is required', 
+            'stock_quantity.required' => 'Product initial stock quantity is required', 
             'stock_quantity.integer' => 'Product stock quantity must be a whole number', 
             'stock_quantity.min' => 'Product stock quantity must be at least :min', 
             'stock_quantity.max' => 'Product stock quantity cannot exceed :max', 
