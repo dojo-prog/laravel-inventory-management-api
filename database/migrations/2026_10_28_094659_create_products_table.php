@@ -20,10 +20,10 @@ return new class extends Migration
             $table->string('sku');
             $table->string('name');
             $table->text('description')->nullable();
-            $table->string('unit'); 
+            $table->string('unit');
             $table->decimal('unit_cost', 8, 2);
-            $table->integer('stock_quantity'); 
-            $table->integer('reorder_level', 8, 2);
+            $table->integer('stock_quantity');
+            $table->integer('reorder_level');
             $table->enum('status', ['active', 'inactive']);
             $table->timestamps();
 
