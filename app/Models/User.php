@@ -36,6 +36,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function hasRole(array $roles)
+    {
+        return in_array($this->role, $roles);
+    }
+
     public function stockMovements(): HasMany 
     {
         return $this->hasMany(StockMovement::class);
