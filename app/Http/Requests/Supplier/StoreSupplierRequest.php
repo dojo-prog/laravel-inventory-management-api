@@ -30,12 +30,17 @@ class StoreSupplierRequest extends FormRequest
                 'string',
                 'min:2',
                 'max:255',
-                Rule::unique('suppliers', 'name')
+                Rule::unique('suppliers')
                     ->where(function ($query) {
-                        return $query->whereRaw(
-                            'LOWER(contact_person) = ?', 
-                            [strtolower($this->contact_person)]
-                        );
+                        return $query
+                            ->whereRaw(
+                                'LOWER(name) = ?', 
+                                [strtolower($this->name)]
+                            )
+                            ->whereRaw(
+                                'LOWER(contact_person) = ?', 
+                                [strtolower($this->contact_person)]
+                            );
                     })
             ],
 
