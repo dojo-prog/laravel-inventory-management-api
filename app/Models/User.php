@@ -16,12 +16,13 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasUuids, HasApiTokens;
+    use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
     protected $fillable = [
-        'name',    
-        'email', 
-        'password'
+        'name',
+        'email',
+        'password',
+        'role',
     ];
 
     /**
@@ -42,7 +43,7 @@ class User extends Authenticatable
         return in_array($this->role, $roles);
     }
 
-    public function stockMovements(): HasMany 
+    public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
     }
