@@ -68,10 +68,12 @@ class UpdateProductSupplierRequest extends FormRequest
             'product_id.required' => 'Product is required',
             'product_id.string' => 'Product ID must be a valid string',
             'product_id.uuid' => 'Product ID format is invalid (must be a UUID)',
+            'product_id.exists' => 'Product provided does not exist or has been deleted',
 
             'supplier_id.required' => 'Supplier is required',
             'supplier_id.string' => 'Supplier ID must be a valid string',
             'supplier_id.uuid' => 'Supplier ID format is invalid (must be a UUID)',
+            'supplier_id.exists' => 'Supplier provided does not exist or has been deleted',
             
             'supplier_sku.string' => 'Supplier SKU must be a valid string',
             'supplier_sku.min' => 'Supplier SKU must at least be :min characters long',
