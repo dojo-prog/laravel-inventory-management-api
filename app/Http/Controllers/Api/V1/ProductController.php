@@ -7,7 +7,9 @@ use App\Http\Requests\Product\IndexProductRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
+use App\Jobs\DestroyCloudinaryImage;
 use App\Models\Product;
+use App\Services\CloudinaryService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ProductController extends Controller
@@ -74,11 +76,19 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreProductRequest $request)
+    public function store(StoreProductRequest $request, CloudinaryService $cloudinary)
     {
         $this->authorize('create', Product::class);
 
-        $product = Product::create($request->validated());
+        $validated = $request->validated();
+
+        if ($request->hasFile('image')) {
+            $uploadResult = $cloudinary->upload($request->file('image'));
+            $validated['image_url'] = $uploadResult['secure_url'];
+            $validated['image_public_id'] = $uploadResult['public_id'];
+        }
+
+        $product = Product::create($validated);
         $product->load(['category', 'suppliers']);
 
         return (new ProductResource($product))
@@ -100,13 +110,27 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateProductRequest $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product, CloudinaryService $cloudinary)
     {
-        $this->authorize('view', $product);
+        $this->authorize('update', $product);
 
-        $product->update($request->validated());
+        $validated = $request->validated();
+        $oldImagePublicId = $product->image_public_id;
+
+        if ($request->hasFile('image')) {
+            $uploadResult = $cloudinary->upload($request->file('image'));
+
+            $validated['image_url'] = $uploadResult['secure_url'];
+            $validated['image_public_id'] = $uploadResult['public_id'];
+        }
+
+        $product->update($validated);
         $product->load(['category', 'suppliers']);
-        
+
+        if ($request->hasFile('image') && $oldImagePublicId) {
+            DestroyCloudinaryImage::dispatch($oldImagePublicId);
+        }
+
         return new ProductResource($product);
     }
 
@@ -115,8 +139,12 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        $this->authorize('view', $product);
-        
+        $this->authorize('delete', $product);
+
+        if ($product->image_public_id) {
+            DestroyCloudinaryImage::dispatch($product->image_public_id);
+        }
+
         $product->delete();
 
         return response()->noContent();

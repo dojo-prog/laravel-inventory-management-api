@@ -13,7 +13,7 @@ class Product extends Model
 {
     use HasUuids;
 
-    protected static function booted() 
+    protected static function booted()
     {
         static::creating(function ($product) {
             if (empty($product->sku)) {
@@ -22,7 +22,7 @@ class Product extends Model
         });
     }
 
-    public static function generateSKU(Product $product): string 
+    public static function generateSKU(Product $product): string
     {
         $category = Category::find($product->category_id);
         $categoryName = $category ? $category->name : 'GEN';
@@ -39,6 +39,8 @@ class Product extends Model
         'sku',
         'name',
         'description',
+        'image_url',
+        'image_public_id',
         'unit',
         'unit_cost',
         'stock_quantity',
@@ -51,11 +53,11 @@ class Product extends Model
         return [
             'unit_cost' => 'decimal:2',
             'stock_quantity' => 'integer',
-            'reorder_level' => 'integer' 
+            'reorder_level' => 'integer',
         ];
     }
 
-    public function category(): BelongsTo 
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
@@ -68,7 +70,7 @@ class Product extends Model
             ->withTimestamps();
     }
 
-    public function stockMovements(): HasMany 
+    public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
     }

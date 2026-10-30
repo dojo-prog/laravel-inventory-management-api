@@ -19,6 +19,8 @@ class ProductResource extends JsonResource
             'sku' => $this->sku,
             'name' => $this->name,
             'description' => $this->description,
+            'image_url' => $this->image_url,
+            'image_public_id' => $this->image_public_id,
             'unit' => $this->unit,
             'unit_cost' => $this->unit_cost,
             'stock_quantity' => $this->stock_quantity,
@@ -32,7 +34,7 @@ class ProductResource extends JsonResource
             ),
             'suppliers' => SupplierResource::collection(
                 $this->whenLoaded('suppliers')
-            )
+            ),
         ];
     }
 }
