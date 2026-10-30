@@ -45,6 +45,7 @@ The **Inventory Management API** is a RESTful backend that tracks technology pro
 - Organize **products** into **categories**.
 - Associate products with **suppliers**, each with its own supplier SKU and negotiated unit cost.
 - Record every **stock movement** — `stock-in`, `stock-out`, and `adjustment` — in an append-only audit trail that reconciles with each product's current `stock_quantity`.
+- Upload a **product image** to **Cloudinary** (signed server-side upload); replacing or deleting a product automatically schedules cleanup of the old asset.
 - Filter, sort, and paginate all listings (e.g. "show me products below their reorder level").
 
 All identifiers are **UUIDs**, all requests/ responses are JSON via **Eloquent API Resources** (versioned under `/api/v1`), and access is managed with **Laravel Sanctum** bearer tokens.
@@ -60,6 +61,7 @@ All identifiers are **UUIDs**, all requests/ responses are JSON via **Eloquent A
 | **Categories** | Full CRUD with unique names and search/filter |
 | **Suppliers** | Full CRUD with contact details, search across name/contact/email; filter by supplied product |
 | **Products** | Full CRUD, auto-generated SKUs, multiple filters (`search`, `category_id`, `supplier_id`, `status`, `min_stock`, `low_stock`), sorting and pagination |
+| **Product Images** | Single image per product via **Cloudinary** — signed server-side upload (`multipart/form-data`), asset replaced on image change and destroyed when the product is deleted (queued background job) |
 | **Product–Supplier** | Link products to suppliers with per-supplier SKU & unit cost (unique per pair, unique supplier SKU) |
 | **Stock Operations** | `stock-in`, `stock-out` (with insufficient-stock guard), and `adjustment` executed transactionally |
 | **Audit Trail** | Every operation writes a `stock_movements` record storing actor, quantity, previous/new stock, reason, and reference (e.g. `PO-2026-011`, `SO-2026-014`) |
@@ -74,6 +76,7 @@ All identifiers are **UUIDs**, all requests/ responses are JSON via **Eloquent A
 - **Laravel Sanctum** for token authentication
 - **Eloquent API Resources** for response transforms (versioned `/api/v1`)
 - **Form Requests** for validation + Policies for authorization
+- **Cloudinary** for product image storage (REST Upload API, signed requests via `App\Services\CloudinaryService`)
 - **Pest** for testing, **Laravel Pint** for code style
 - Database seeding with deterministic demo data
 
@@ -121,6 +124,12 @@ DB_PORT=5432
 DB_DATABASE=laravel_dev_inventory_management
 DB_USERNAME=postgres
 DB_PASSWORD=secret
+
+# 4b. Set your Cloudinary credentials in .env
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=inventory-management
 
 # 5. Run migrations and seed the demo data
 php artisan migrate:fresh --seed
@@ -242,10 +251,10 @@ Authorization: Bearer <your-token>
 | Method | URI | Description |
 |--------|-----|-------------|
 | `GET` | `/products` | List (paginate). **Filters:** `search` (name/sku), `category_id`, `supplier_id`, `status`, `min_stock`, `low_stock=true`, `sort_by` (`created_at`, `name`, `unit_cost`, `stock_quantity`), `sort_order`, `per_page` |
-| `POST` | `/products` | Create (see fields below; `sku` optional — auto-generated) |
-| `GET` | `/products/{id}` | Show (with `category` and `suppliers`) |
-| `PUT` / `PATCH` | `/products/{id}` | Update |
-| `DELETE` | `/products/{id}` | Delete |
+| `POST` | `/products` | Create (see fields below; `sku` optional — auto-generated; acceptable as multipart with optional image) |
+| `GET` | `/products/{id}` | Show (with `category` and `suppliers`, plus `image_url`) |
+| `PUT` / `PATCH` | `/products/{id}` | Update (multipart if an image is included) |
+| `DELETE` | `/products/{id}` | Delete (the stored image is removed from Cloudinary in the background) |
 
 Product fields:
 
@@ -255,11 +264,37 @@ Product fields:
 | `sku` | optional, unique (case-insensitive) — generated automatically when omitted |
 | `name` | required, 2–100 chars, unique per category (case-insensitive) |
 | `description` | optional, 10–300 chars |
+| `image` | optional, image file (`jpeg`, `jpg`, `png`, `webp`), max 2 MB — multipart uploads only |
 | `unit` | required (e.g. `pcs`), 2–50 chars |
 | `unit_cost` | required, numeric, ≥ 0 |
 | `stock_quantity` | required, integer ≥ 0 |
 | `reorder_level` | required, integer ≥ 0, max 999 |
 | `status` | required, `active` or `inactive` |
+
+Each product response exposes `image_url` (Cloudinary CDN URL) and `image_public_id` (the Cloudinary asset identifier).
+
+#### Product Image Handling
+
+One image per product, stored in **Cloudinary** (`{CLOUDINARY_FOLDER}/products/`). Uploads are **signed server-side** — the client posts the file, and the backend computes the request signature, streams the file to the Cloudinary Upload API, and stores the returned `public_id` + `secure_url`.
+
+| Event | Behavior |
+|---|---|
+| Create with `image` | File is uploaded; asset URL + public ID persisted with the product |
+| Update with `image` | New file is uploaded first, product is updated, then the **old** asset is scheduled for destruction |
+| Update without `image` | Existing image is left untouched |
+| Product deleted | The stored asset is scheduled for destruction along with the row |
+
+Cleanup runs through the `DestroyCloudinaryImage` queued job (database queue, 3 attempts with backoff, dispatched after commit), so Cloudinary outages never block or fail a request — the DB mutation always happens first. Assets that can't be removed within the retry window are recorded in the logs.
+
+Multipart example (create a product with an image):
+
+```http
+POST /api/v1/products
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+category_id=...&name=Wireless Mouse&unit=pcs&unit_cost=25.00&stock_quantity=50&reorder_level=10&status=active&image=@mouse.jpg
+```
 
 ### Product–Supplier Links
 
@@ -410,6 +445,7 @@ products
 ├── unit_cost (≥ 0)
 ├── stock_quantity (≥ 0), reorder_level (≥ 0)
 ├── status: active | inactive
+├── image_url, image_public_id (nullable — Cloudinary asset)
 ├── belongsTo → category
 ├── belongsToMany → suppliers (via product_suppliers)
 └── hasMany → stock_movements
@@ -492,6 +528,10 @@ app/
 │   └── Resources/                  # API resources (User, Category, Product, Supplier, …)
 ├── Models/                         # Eloquent models (UUIDs, relationships, SKU generation)
 ├── Policies/                       # Authorization policies
+├── Services/                       # Third-party API clients
+│   └── CloudinaryService.php       # Signed Cloudinary upload / destroy (REST, no SDK)
+├── Jobs/                           # Queued jobs
+│   └── DestroyCloudinaryImage.php  # Background cleanup of replaced / deleted product images
 └── Providers/
 
 database/
